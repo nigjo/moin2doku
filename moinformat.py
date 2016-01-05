@@ -7,13 +7,13 @@
 #
 # Author: Elan Ruusamäe <glen@pld-linux.org>
 # Version: 1.0
-
-from MoinMoin import wikimacro, wikiutil
+#from MoinMoin.web.request import Request as RequestCLI
+from MoinMoin.web.contexts import ScriptContext
+from MoinMoin import  wikiutil
 from MoinMoin.Page import Page
-from MoinMoin.parser.wiki import Parser
+from MoinMoin.parser.text_moin_wiki import Parser
 
 from text_dokuwiki import Formatter
-from MoinMoin.request import RequestCLI
 
 import sys
 import StringIO
@@ -37,7 +37,7 @@ def moin2doku(pagename, text):
 
 	return unicode(output.getvalue().decode('utf-8'))
 
-request = RequestCLI()
+request = ScriptContext()
 formatter = Formatter(request)
 
 if __name__ == "__main__":
@@ -47,6 +47,6 @@ if __name__ == "__main__":
 	else:
 		inputfile = 'syntaxreference.txt'
 
-	with open(inputfile, 'r') as f:
-		text = f.read()
+	f = open(inputfile, 'r')
+	text = f.read()
 	print moin2doku('test', text)

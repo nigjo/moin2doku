@@ -9,9 +9,10 @@
 # Version: 1.0
 
 import sys, os, os.path, re, codecs
+sys.path.insert(1,'/home/caddy/.conda/envs/moinmoin/lib/python2.7/site-packages/MoinMoin/support')
 import getopt
 from MoinMoin import user, wikiutil
-from MoinMoin.request import RequestCLI
+from MoinMoin.web.contexts import ScriptContext as RequestCLI
 from MoinMoin.logfile import editlog
 from MoinMoin.Page import Page
 from shutil import copyfile, copystat
@@ -40,8 +41,8 @@ def init_dirs(output_dir):
 		mkdir(metadir)
 
 def readfile(filename):
-	with open(filename, 'r') as f:
-		text = f.read()
+	f = open(filename, 'r')
+	text = f.read()
 	return unicode(text.decode('utf-8'))
 
 def writefile(filename, content, overwrite=False):
@@ -50,7 +51,7 @@ def writefile(filename, content, overwrite=False):
 		os.makedirs(dir);
 
 	if os.path.exists(filename) and overwrite == False:
-		raise OSError, 'File already exists: %s' % filename
+		raise (OSError, 'File already exists: %s' % filename)
 
 	# ensure it's a list
 	if not isinstance(content, (list, tuple)):
@@ -294,6 +295,7 @@ else:
 	# get list of all pages in wiki
 	# hide underlay dir temporarily
 	underlay_dir = request.rootpage.cfg.data_underlay_dir
+	print(underlay_dir)
 	request.rootpage.cfg.data_underlay_dir = None
 	pages = request.rootpage.getPageList(user = '', exists = not convert_attic, filter = filter)
 	pages = dict(zip(pages, pages))

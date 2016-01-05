@@ -13,7 +13,7 @@
 
 if ('cli' != php_sapi_name()) die();
 
-define('DOKU_INC', '/usr/share/dokuwiki/');
+define('DOKU_INC', '/home/caddy/wikifarm/dokuwiki/dokuwiki/');
 require_once DOKU_INC.'inc/init.php';
 require_once DOKU_INC.'inc/common.php';
 require_once DOKU_INC.'inc/cliopts.php';
