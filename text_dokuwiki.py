@@ -31,9 +31,12 @@ class Formatter(FormatterBase):
         self.in_pre = 0
         self.in_table = 0
         self._text = None # XXX does not work with links in headings!!!!!
-
+        self.randomID= None
         self.list_depth = 0
         self.list_type = ' '
+
+    def setRandomID(self,ID):
+        self.randomID = str(ID)
 
     def _escape(self, text, extra_mapping={"'": "&apos;", '"': "&quot;"}):
         return saxutils.escape(text, extra_mapping)
@@ -78,13 +81,16 @@ class Formatter(FormatterBase):
         return ('[[%s|' % (self._escape(url)), ']]')[not on]
 
     def attachment_link(self, on, url=None, querystr=None, **kw):
-        return '{{ %s | %s }}' % (url, querystr)
+        if on:
+            return '{{ %s | }}' % (self.randomID+url)
+        else: 
+            return ' }}'
 
     def attachment_image(self, url, **kw):
-        return '{{%s|}}' % (url,)
+        return '{{%s|}}' % (self.randomID+url,)
 
     def attachment_drawing(self, url, text, **kw):
-        return '{{%s|%s}}' % (url, text)
+        return '{{%s|%s}}' % (self.randomID+url, text)
 
     def text(self, text, **kw):
         self._did_para = 0
@@ -291,7 +297,7 @@ class Formatter(FormatterBase):
 
         def showAttachedFiles(args):
             args = args.split(',')
-            return self.attachment_link(1,url=args[0].strip(),querystr=args[1].strip())
+            return '{{ %s | %s }}' % (self.randomID+args[0].strip(), args[1].strip())
 
         # function which will just do what parent class would
         def inherit(args):
@@ -303,7 +309,8 @@ class Formatter(FormatterBase):
                 'MailTo' : email,
                 'GetText' : args,
                 'ShowSmileys' : inherit,
-                'ShowAttachedFiles' : showAttachedFiles
+                'ShowAttachedFiles' : showAttachedFiles,
+                'Include' : inherit
             }[name]
         except KeyError:
             lookup = '/* UndefinedMacro: %s(%s) */' % (name, args)

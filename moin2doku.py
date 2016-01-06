@@ -20,6 +20,7 @@ from os import listdir, mkdir
 from os.path import isdir, basename
 from doku import DokuWiki
 from moinformat import moin2doku
+import random
 
 USEC = 1000000
 
@@ -63,7 +64,7 @@ def writefile(filename, content, overwrite=False):
 
 # page = MoinMoin Page oject
 # ns = DokuWiki namespace where attachments to copy
-def copy_attachments(page, ns):
+def copy_attachments(page, ns,randomID):
 	srcdir = page.getPagePath('attachments', check_create = 0)
 	if not isdir(srcdir):
 		return
@@ -75,7 +76,7 @@ def copy_attachments(page, ns):
 	attachments = listdir(srcdir)
 	for attachment in attachments:
 		src = os.path.join(srcdir, attachment)
-		dst = os.path.join(output_dir, 'media', dw.mediaFN(dw.cleanID("%s/%s" % (ns, attachment))))
+		dst = os.path.join(output_dir, 'media', dw.mediaFN(dw.cleanID("%s/%s" % (ns, str(randomID)+attachment))))
 		copyfile(src, dst)
 		copystat(src, dst)
 
@@ -157,8 +158,10 @@ def convert_editlog(page, output = None, overwrite = False):
 def convertfile(page, output = None, overwrite = False):
 	pagedir = page.getPagePath()
 	pagename = wikiname(pagedir)
+
 	if not output:
-		output = pagename
+		output = pagename.split("/")
+
 
 	if page.isUnderlayPage():
 		print "underlay: %s" % page.request.cfg.data_underlay_dir
@@ -173,6 +176,9 @@ def convertfile(page, output = None, overwrite = False):
 		revs = page.getRevList()
 	else:
 		revs = [current_rev]
+
+	# Generate random ID Number for collision avoidance when attachments in Namespace have the same name
+	randomID = random.randint(101,999)
 
 	for rev in revs:
 		page = Page(request, pagename, rev = rev)
@@ -200,7 +206,7 @@ def convertfile(page, output = None, overwrite = False):
 		else:
 			out_file = os.path.join(output_dir, 'attic', dw.wikiFN(output, str(mtime)))
 
-		content = moin2doku(pagename, page.get_raw_body())
+		content = moin2doku(pagename, page.get_raw_body(),randomID)
 		if len(content) == 0:
 #			raise Exception, "No content"
 			print "NO CONTENT: exists: %s,%s" % (exists, os.path.exists(pagefile))
@@ -209,7 +215,7 @@ def convertfile(page, output = None, overwrite = False):
 		copystat(pagefile, out_file)
 
 	ID = dw.cleanID(output)
-	copy_attachments(page, dw.getNS(ID))
+	copy_attachments(page, dw.getNS(ID),randomID)
 
 	# convert edit-log, it's always present even if current page is not
 	convert_editlog(page, output = output, overwrite = overwrite)

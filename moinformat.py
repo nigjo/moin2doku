@@ -18,9 +18,11 @@ from text_dokuwiki import Formatter
 import sys
 import StringIO
 
-def moin2doku(pagename, text):
+def moin2doku(pagename, text, randomID=None):
 	parser = Parser(text, request)
 
+	formatter.setRandomID(randomID)
+	
 	# this needed for macros
 	request.formatter = formatter
 
