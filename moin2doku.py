@@ -9,7 +9,6 @@
 # Version: 1.0
 
 import sys, os, os.path, re, codecs
-sys.path.insert(1,'/home/caddy/.conda/envs/moinmoin/lib/python2.7/site-packages/MoinMoin/support')
 import getopt
 from MoinMoin import user, wikiutil
 from MoinMoin.web.contexts import ScriptContext as RequestCLI
@@ -160,8 +159,7 @@ def convertfile(page, output = None, overwrite = False):
 	pagename = wikiname(pagedir)
 
 	if not output:
-		output = pagename.split("/")
-
+		output = pagename
 
 	if page.isUnderlayPage():
 		print "underlay: %s" % page.request.cfg.data_underlay_dir
