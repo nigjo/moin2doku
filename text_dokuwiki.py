@@ -82,7 +82,7 @@ class Formatter(FormatterBase):
 
     def attachment_link(self, on, url=None, querystr=None, **kw):
         if on:
-            return '{{ %s | }}' % (self.randomID+url)
+            return '{{ %s | ' % (self.randomID+url)
         else: 
             return ' }}'
 
@@ -137,6 +137,13 @@ class Formatter(FormatterBase):
             self.list_type = ' '
 
         return ['', '\n'][on]
+
+    # generic transclude/include:
+    def transclusion(self, on, **kw):
+        return ''
+
+    def transclusion_param(self, **kw):
+        return ''
 
     def listitem(self, on, **kw):
         # somewhy blockquote uses "listitem" call
@@ -297,7 +304,10 @@ class Formatter(FormatterBase):
 
         def showAttachedFiles(args):
             args = args.split(',')
-            return '{{ %s | %s }}' % (self.randomID+args[0].strip(), args[1].strip())
+            if len(args)>1:
+                return '{{ %s | %s }}' % (self.randomID+args[0].strip(), args[1].strip())
+            else:
+                return ''
 
         # function which will just do what parent class would
         def inherit(args):
