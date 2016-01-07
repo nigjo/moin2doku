@@ -6,7 +6,7 @@ Converts also page history and edit-log.
 
 http://www.dokuwiki.org/tips:moinmoin2doku
 
-Tested with MoinMoin 1.5 and DokuWiki 2012-09-10 releases
+Tested with MoinMoin 1.9 and DokuWiki 2014-12-09 releases
 
 You need to run this on host where both MoinMoin and DokuWiki are configured,
 it uses current configuration from both wikis.
@@ -57,3 +57,8 @@ converting and translating paths. Converts also page history and edit-log.
 This marks the project "done", I will no longer develop it or support it, as I got my conversion done. However, I do accept patches (pull requests) to sane amount.
 
 I put repo online so others have better starting point than I did.
+
+
+version 1.1 (2015)
+----------------
+Modifed the script to work with newer Moin versions and API changes.
