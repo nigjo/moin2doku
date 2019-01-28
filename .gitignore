@@ -1,3 +1,4 @@
 settings.local.cmd
 *.log
 *.pyc
+out/
