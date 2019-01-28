@@ -13,10 +13,10 @@
 
 if ('cli' != php_sapi_name()) die();
 
-define('DOKU_INC', '/home/caddy/wikifarm/dokuwiki/dokuwiki/');
+define('DOKU_INC', 'e:/Webseite/intern/tools/dwconf/');
 require_once DOKU_INC.'inc/init.php';
 require_once DOKU_INC.'inc/common.php';
-require_once DOKU_INC.'inc/cliopts.php';
+require_once DOKU_INC.'inc/cli.php';
 
 # disable gzip regardless of config, then we don't have to compress when converting
 $conf['compression'] = 0; //compress old revisions: (0: off) ('gz': gnuzip) ('bz2': bzip)
@@ -29,29 +29,33 @@ function strip_dir($dir, $fn) {
 	return end(explode($dir.'/', $fn, 2));
 }
 
-switch ($argv[1]) {
+$action = $argv[1];
+$argPage = $argv[2];
+//filext = $argv[3];
+
+switch ($action) {
 case 'cleanID':
-	echo cleanID($argv[2]);
+	echo cleanID($argPage);
 	break;
 case 'wikiFN':
 	if ($argc > 3 && $argv[3]) {
-		echo strip_dir($conf['olddir'], wikiFN($argv[2], $argv[3]));
+		echo strip_dir($conf['olddir'], wikiFN($argPage, $argv[3]));
 	} else {
-		echo strip_dir($conf['datadir'], wikiFN($argv[2]));
+		echo strip_dir($conf['datadir'], wikiFN($argPage));
 	}
 	break;
 case 'mediaFN':
-	echo strip_dir($conf['mediadir'], mediaFN($argv[2]));
+	echo strip_dir($conf['mediadir'], mediaFN($argPage));
 	break;
 case 'metaFN':
-	echo strip_dir($conf['metadir'], metaFN($argv[2], $argv[3]));
+	echo strip_dir($conf['metadir'], metaFN($argPage, $argv[3]));
 	break;
 case 'getNS':
-	echo getNS($argv[2]);
+	echo getNS($argPage);
 	break;
 case 'getId':
 	echo getId();
 	break;
 default:
-	die("Unknown knob: {$argv[1]}");
+	die("Unknown knob: {$action}");
 }
