@@ -13,6 +13,9 @@ from MoinMoin.formatter import FormatterBase
 from MoinMoin import config
 from MoinMoin.Page import Page
 from types import *
+from MoinMoin import log
+
+logging = log.getLogger(__name__)
 
 # TODO: let base class MoinMoin/formatter/base.py handle not implemented methods
 
@@ -73,6 +76,14 @@ class Formatter(FormatterBase):
         if on:
             if interwiki == 'Self':
                 return self.pagelink(on, pagename, **kw)
+            interwikis = {
+                'WikiPedia':'wp',
+                'FrWikiPedia':'wpfr',
+                'DeWikiPedia':'wpde',
+                'MetaWikiPedia':'wpmeta'
+                }
+            if interwiki in interwikis:
+                return '[[%s>%s|' % (interwikis.get(interwiki), pagename)
             return '[[%s>%s|' % (interwiki, pagename)
         else:
             return ']]'
@@ -134,7 +145,8 @@ class Formatter(FormatterBase):
             self.list_type = '*'
         else:
             self.list_depth -= 1
-            self.list_type = ' '
+            if self.list_depth <= 0:
+                self.list_type = ' '
 
         return ['', '\n'][on]
 
@@ -151,7 +163,7 @@ class Formatter(FormatterBase):
 
     def code(self, on, **kw):
         """ `typewriter` or {{{typerwriter}}, for code blocks i hope codeblock works """
-        return ["''", "''"][not on]
+        return ["''%%", "%%''"][not on]
 
     def sup(self, on, **kw):
         return ['<sup>', '</sup>'][not on]
@@ -162,12 +174,20 @@ class Formatter(FormatterBase):
     def strike(self, on, **kw):
         return ['<del>', '</del>'][not on]
 
+    def small(self, on, **kw):
+        #https://www.dokuwiki.org/plugin:wrap
+        return ['<wrap lo>', '</wrap>'][not on]
+
+    def big(self, on, **kw):
+        #https://www.dokuwiki.org/plugin:wrap
+        return ['<wrap hi>', '</wrap>'][not on]
+
     def preformatted(self, on, **kw):
         FormatterBase.preformatted(self, on)
         result = ''
         if self.in_p:
             result = self.paragraph(0)
-        return result + ['<file>', '</file>\n'][not on]
+        return result + ['<code>', '</code>\n'][not on]
 
     def paragraph(self, on, **kw):
         FormatterBase.paragraph(self, on)
@@ -192,7 +212,7 @@ class Formatter(FormatterBase):
             self.in_table = 1
         else:
             self.in_table = 0
-        return ''
+        return ['', '\n'][not on]
 
     def table_row(self, on, attrs={}, **kw):
         return ['\n', '|'][not on]
@@ -201,8 +221,8 @@ class Formatter(FormatterBase):
         return ['|', ''][not on]
 
     def anchordef(self, id):
-        # not supported
-        return ''
+        # https://www.dokuwiki.org/plugin:anchor
+        return '{{anchor:'+id+'}}'
 
     def anchorlink(self, on, name='', **kw):
         # kw.id not supported, we hope the anchor matches existing heading on page
@@ -212,16 +232,17 @@ class Formatter(FormatterBase):
         return ['__', '__'][not on]
 
     def definition_list(self, on, **kw):
+        # https://www.dokuwiki.org/plugin:definitionlist
         result = ''
         if self.in_p:
             result = self.paragraph(0)
-        return result + ['<gloss>', '</gloss>'][not on]
+        return result
 
     def definition_term(self, on, compact=0, **kw):
-        return ['<label>', '</label>'][not on]
+        return ['  ;', '\n'][not on]
 
     def definition_desc(self, on, **kw):
-        return ['<item>', '</item>'][not on]
+        return ['  :', '\n'][not on]
 
     def image(self, src=None, **kw):
         valid_attrs = ['src', 'width', 'height', 'alt', 'title']
@@ -268,8 +289,11 @@ class Formatter(FormatterBase):
     def comment(self, text):
         # real comments (lines with two hash marks)
         if text[0:2] == '##':
-            #return "/* %s */\n" % text[2:].strip()
-            return ''
+            # https://www.dokuwiki.org/plugin:comment
+            comment = text[2:].strip()
+            if len(comment)>1:
+                return "/* %s */\n" % text[2:].strip()
+            return '\n'
 
         # Some kind of Processing Instruction
         # http://moinmo.in/HelpOnProcessingInstructions
@@ -279,6 +303,7 @@ class Formatter(FormatterBase):
 
         if tokens[0] == 'acl':
             # TODO: fill acl.auth.php
+            logging.info('SKIPPING ACL: %s', text)
             return ''
 
         if tokens[0] == 'deprecated':
@@ -289,6 +314,7 @@ class Formatter(FormatterBase):
 
         if tokens[0] == 'pragma':
             # TODO: can do 'description' via 'meta' dokuwiki plugin
+            logging.info('SKIPPING PRAGMA: %s', text)
             #return "/* pragma: %s */\n" % " ".join(tokens[1:])
             return ''
 
@@ -313,16 +339,67 @@ class Formatter(FormatterBase):
         def inherit(args):
             return apply(FormatterBase.macro, (self, macro_obj, name, args))
 
+        def randomQuote(args):
+            # https://www.dokuwiki.org/plugin:xfortune
+            return '{{xfortune>quote:'+args+'.txt}}'
+
+        def monthcal(args):
+            # https://www.dokuwiki.org/plugin:monthcal
+            selfname = self.page.page_name
+            return '{{monthcal:create_links=short,namespace='+selfname.replace('/',':')+'}}'
+
+        def navigation(args):
+            # https://www.dokuwiki.org/plugin:alphaindex
+            selfname = self.page.page_name
+            args = args.split(',')
+            if len(args)>0:
+                try:
+                    result = {
+                      'slides': '[<>]',
+                      'children': '{{alphaindex>:%s#1|nons}}' % selfname.replace('/',':'),
+                      'siblings': '{{alphaindex>.#1|nons}}',
+                      'slideshow': '/* no support for slideshow navigation */'
+                    }[args[0].strip()]
+                except KeyError:
+                    result = '/* Unknown Navigation: %s #%s#*/' % args, args[0].strip()
+            else:
+                result = '/* Unsupported Navigation: %s */' % args
+            return result
+
+        def footnote(args):
+            return '((%s))' % args
+
+        def dateTimeMacro(args):
+            #https://www.dokuwiki.org/plugin:date
+            #args = args.split(',');
+            return '{{date>%%c|timestamp=strtotime("%s")|locale=de}}' % args
+
+        def dateMacro(args):
+            #https://www.dokuwiki.org/plugin:date
+            #args = args.split(',');
+            return '{{date>%%x|timestamp=strtotime("%s")|locale=de}}' % args
+
         try:
             lookup = {
-                'BR' : '\\\\',
+                'BR' : ' \\\\ ',
                 'MailTo' : email,
                 'GetText' : args,
                 'ShowSmileys' : inherit,
                 'ShowAttachedFiles' : showAttachedFiles,
-                'Include' : inherit
+                #'Include' : inherit,
+                'MonthCalendar' : monthcal,
+                'Navigation' : navigation,
+                'TableOfContents' : '',
+                'RandomQuote': randomQuote,
+                'Anchor': inherit,
+                'Action': inherit,
+                'Icon': inherit,
+                'FootNote': footnote,
+                'Date': dateMacro,
+                'DateTime': dateTimeMacro
             }[name]
         except KeyError:
+            logging.info('UNDEFINED MACRO "%s"' % name)
             lookup = '/* UndefinedMacro: %s(%s) */' % (name, args)
 
         if type(lookup) == FunctionType:
