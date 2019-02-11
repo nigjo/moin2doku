@@ -14,7 +14,7 @@ REM -- DokuWiki settings
 set DOKU_HOME=c:\wwwroot\wiki\dokuwiki
 set DOKU_ANIMALS_HOME=%DOKU_HOME%
 REM set DOKU_ANIMALS_HOME=c:\wwwroot\dokufarmdata
-REM set ANIMAL=<yourFarmAnimalName>
+REM set animal=<yourFarmAnimalName>
 
 REM -- path to your php.ini used by your webserver
 REM set PHP_INI_SCAN_DIR=c:\Program Files\ApacheHttpd\conf\
@@ -27,6 +27,12 @@ REM -- remove everything beyond the line from your copy
 chcp 1252
 
 if exist "%~dpn0.local.cmd" call "%~dpn0.local.cmd"
+
+REM -- %animal% must be lowercase!
+(
+set animal=
+set animal=%animal%
+)
 
 set PATH=%PATH%;%PYTHON_HOME%;%PHP_HOME%
 
