@@ -239,7 +239,8 @@ class Formatter(FormatterBase):
         return result
 
     def definition_term(self, on, compact=0, **kw):
-        return ['  ;', '\n'][not on]
+		#MoinMoin does no wiki markup in DL-Terms
+        return ['  ;%%', '%%\n'][not on]
 
     def definition_desc(self, on, **kw):
         return ['  :', '\n'][not on]
@@ -314,7 +315,10 @@ class Formatter(FormatterBase):
 
         if tokens[0] == 'pragma':
             # TODO: can do 'description' via 'meta' dokuwiki plugin
-            logging.info('SKIPPING PRAGMA: %s', text)
+            pargs = tokens[1].split(None, 1)
+            if pargs[0]=='section-numbers':
+                return '/* meta: %s */' % tokens
+            logging.info('SKIPPING PRAGMA: %s', tokens)
             #return "/* pragma: %s */\n" % " ".join(tokens[1:])
             return ''
 
@@ -356,8 +360,8 @@ class Formatter(FormatterBase):
                 try:
                     result = {
                       'slides': '[<>]',
-                      'children': '{{alphaindex>:%s#1|nons}}' % selfname.replace('/',':'),
-                      'siblings': '{{alphaindex>.#1|nons}}',
+                      'children': '{{alphaindex>:%s#1|nons incol}}' % selfname.replace('/',':'),
+                      'siblings': '{{alphaindex>.#1|nons incol}}',
                       'slideshow': '/* no support for slideshow navigation */'
                     }[args[0].strip()]
                 except KeyError:
@@ -379,14 +383,97 @@ class Formatter(FormatterBase):
             #args = args.split(',');
             return '{{date>%%x|timestamp=strtotime("%s")|locale=de}}' % args
 
+        def includeMacro(args):
+            #https://www.dokuwiki.org/plugin:include
+            #logging.info('Include(%s)' % args)
+            args = map(unicode.strip, args.split(','));
+            #dokupage = ":".join(pagename.split("/"))
+            if len(args)==1:
+                return '{{page>%s&nodate}}' % ":".join(args[0].split("/"))
+            elif(u'titlesonly' in args):
+                #https://www.dokuwiki.org/plugin:changes
+                #https://www.dokuwiki.org/plugin:pagelist
+                selfname = self.page.page_name
+                selfNs = ":".join(selfname.split("/")).lower()
+                pairs = [arg.split('=') for arg in args]
+                # attrs = {}
+                # for key, value in pairs:
+                    # attrs[key] = value
+                #logging.info('pairs:"%s"' % pairs)
+
+                incName = ''#pairs[0]
+                incCount = -1
+                incTitlesOnly = False
+                notNamedParam = 0
+                for pair in pairs:
+                    if len(pair)==1:
+                        if u'titlesonly'==pair:
+                            notNamedParam = -1
+                            incTitlesOnly = True
+                        elif notNamedParam >=0:
+                            if notNamedParam==0:
+                                incName = pairs[notNamedParam]
+                            notNamedParam += 1;
+                    else:
+                        notNamedParam = -1
+                        if u'items'==pair[0]:
+                            incCount = int(pair[1])
+
+                resultArgs = '-h1 -textPages=""'
+                #(keys,values) = map()
+                if incCount > 0:
+                    resultArgs += ' -idAndTitle -simpleList -sortId -nbItemsMax=%d' % incCount
+                else:
+                    resultArgs += ' -nbCol=2'
+
+                ##<nspages fortran:mailarchiv -pregPagesOn="/2.*/" -h1 -nbCol=2 -textPages="">
+                ## Lister der letzten 10 Mails:
+                ##<nspages .:mailarchiv -nbItemsMax=10 -sortId -simpleList -idAndTitle -reverse -h1 -nbCol=1 -textPages=""> 
+                if incName[0]=='^':
+                    nspagedelim = incName.rfind('/')
+                    ns = ":".join(incName[1:nspagedelim].split('/')).lower()
+                    incPageReg = incName[(nspagedelim+1):]
+                    resultArgs += ' -pregPagesOn="/^%s/"' % incPageReg
+                else:
+                    ns = selfNs
+
+                return '<nspages %s %s>' % (ns, resultArgs)
+
+            else:
+                logging.info('UNSUPPORTED INCLUDE "%s"' % args)
+                return '/* Unsupported Include: %s */' % args
+
+        def fullsearch(args):
+            #args=None >> {searchform ns=}
+            #args='' >> {{backlinks>.}}
+            #args!='' >> {{search><args>}}
+            #ignore special searches. see MoinMoin page "HilfeZumSuchen"
+            if args is None:
+                return '{searchform ns=}'
+            elif ':' in args or ' ' in args:
+                logging.info('UNSUPPORTED SEARCH %s(%s)' % (name, args))
+                return '/* Unsupported Search %s(%s). may be backlinks plugin will help */' % (name, args)
+            elif args=='':
+                return '{{backlinks>.}}'
+            elif name=='PageList':
+                return '{{backlinks>%s}}' % ":".join(args.split('/')).lower();
+            else:
+                logging.info('UNSUPPORTED SEARCH %s(%s)' % (name, args))
+                return '/* Unsupported Search %s(%s) */' % (name, args)
+
         try:
             lookup = {
                 'BR' : ' \\\\ ',
+                'br' : ' \\\\ ',
                 'MailTo' : email,
                 'GetText' : args,
                 'ShowSmileys' : inherit,
                 'ShowAttachedFiles' : showAttachedFiles,
-                #'Include' : inherit,
+                'Include' : includeMacro,
+                #no real fulltext search!
+                'FullSearch' : fullsearch,
+                'FullSearchCached' : fullsearch,
+                'PageList' : fullsearch,
                 'MonthCalendar' : monthcal,
                 'Navigation' : navigation,
                 'TableOfContents' : '',
