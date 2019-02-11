@@ -13,7 +13,11 @@
 
 if ('cli' != php_sapi_name()) die();
 
-define('DOKU_INC', 'e:/Webseite/intern/tools/dwconf/');
+//add to following define of 'DOKU_INC' to your "doku.local.php" file and adjust the path:
+//define('DOKU_INC', '/home/caddy/wikifarm/dokuwiki/dokuwiki/');
+//define('DOKU_INC', "d:/website/wwwroot/dokuwiki/" );
+require_once './doku.local.php';
+
 require_once DOKU_INC.'inc/init.php';
 require_once DOKU_INC.'inc/common.php';
 require_once DOKU_INC.'inc/cli.php';
