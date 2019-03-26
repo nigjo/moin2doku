@@ -11,6 +11,9 @@
 import sys
 import subprocess
 
+from MoinMoin import log
+logging = log.getLogger(__name__)
+
 class DokuWiki:
 	def __init__(self):
 		self.callcache = {}
@@ -24,10 +27,18 @@ class DokuWiki:
 
 	def __call(self, method, *args):
 		args = list(args)
-		key = "%s:%s" % (method, ",".join(args))
+		uargs = []
+		for arg in args:
+			try:
+				arg.decode('utf-8')
+				#already UTF-8 ready
+				uargs.append(arg)
+			except UnicodeError:
+				uargs.append(arg.encode('utf-8'))
+		key = "%s:%s" % (method, ",".join(uargs))
 		if not self.callcache.has_key(key):
-			cmd = ['./doku.php', method ] + args
-			res = subprocess.Popen(cmd, stdin = None, stdout = subprocess.PIPE, stderr = sys.stderr, close_fds = True).communicate()
+			cmd = ['php', './doku.php', method ] + uargs
+			res = subprocess.Popen(cmd, stdin = None, stdout = subprocess.PIPE, stderr = sys.stderr, close_fds = False).communicate()
 			self.callcache[key] = unicode(res[0].decode('utf-8'))
 			print "%s->%s" % (cmd, self.callcache[key])
 		return self.callcache[key]

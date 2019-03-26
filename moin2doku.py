@@ -21,6 +21,10 @@ from doku import DokuWiki
 from moinformat import moin2doku
 import random
 
+# sys.setdefaultencoding() does not exist, here!
+reload(sys)  # Reload does the trick!
+sys.setdefaultencoding('cp1252')
+
 USEC = 1000000
 
 def init_dirs(output_dir):
@@ -74,10 +78,13 @@ def copy_attachments(page, ns,randomID):
 
 	attachments = listdir(srcdir)
 	for attachment in attachments:
-		src = os.path.join(srcdir, attachment)
-		dst = os.path.join(output_dir, 'media', dw.mediaFN(dw.cleanID("%s/%s" % (ns, str(randomID)+attachment))))
-		copyfile(src, dst)
-		copystat(src, dst)
+		try:
+			src = os.path.join(srcdir, attachment)
+			dst = os.path.join(output_dir, 'media', dw.mediaFN(dw.cleanID(u"%s/%s" % (ns, str(randomID)+attachment))))
+			copyfile(src, dst)
+			copystat(src, dst)
+		except UnicodeDecodeError:
+			print 'ERROR: unable to convert attachment "%s"' % attachment
 
 def print_help():
 	program = sys.argv[0]
@@ -160,6 +167,8 @@ def convertfile(page, output = None, overwrite = False):
 
 	if not output:
 		output = pagename
+
+	print "Converting %s" % pagename
 
 	if page.isUnderlayPage():
 		print "underlay: %s" % page.request.cfg.data_underlay_dir
@@ -312,6 +321,11 @@ else:
 	if pages.has_key(frontpage.page_name):
 		del pages[frontpage.page_name]
 	pages[dw.getId()] = frontpage.page_name
+
+print "--------------------------------------------------"
+for output, pagename in pages.items():
+	print " - %s" % pagename
+print "--------------------------------------------------"
 
 converted = 0
 for output, pagename in pages.items():
